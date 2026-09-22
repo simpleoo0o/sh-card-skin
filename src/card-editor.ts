@@ -17,6 +17,10 @@ export interface EditorSnapshot {
   scale: number;
 }
 
+export class StaleAssetLoadError extends Error {
+  override name = 'StaleAssetLoadError';
+}
+
 interface TransformObjectLike {
   left?: number;
   top?: number;
@@ -69,6 +73,9 @@ export class CardEditor {
   private readonly onChange: (state: EditorSnapshot) => void;
   private photo: FabricImage | null = null;
   private logo: FabricImage | null = null;
+  private photoLoadRevision = 0;
+  private logoLoadRevision = 0;
+  private logoBaseScale = 1;
 
   constructor(element: HTMLCanvasElement, onChange: (state: EditorSnapshot) => void) {
     this.canvas = new Canvas(element, {
@@ -93,8 +100,13 @@ export class CardEditor {
   }
 
   async setPhoto(url: string): Promise<void> {
+    const revision = ++this.photoLoadRevision;
     const image = await FabricImage.fromURL(url);
     this.assertDecodedImage(image, '照片');
+    if (revision !== this.photoLoadRevision) {
+      image.dispose();
+      throw new StaleAssetLoadError();
+    }
     image.set({
       originX: 'center',
       originY: 'center',
@@ -120,8 +132,13 @@ export class CardEditor {
   }
 
   async setLogo(url: string): Promise<void> {
+    const revision = ++this.logoLoadRevision;
     const image = await FabricImage.fromURL(url);
     this.assertDecodedImage(image, 'Logo');
+    if (revision !== this.logoLoadRevision) {
+      image.dispose();
+      throw new StaleAssetLoadError();
+    }
     image.set({
       originX: 'center',
       originY: 'center',
@@ -137,6 +154,7 @@ export class CardEditor {
 
     const previous = this.logo;
     this.logo = image;
+    this.logoBaseScale = logoScaleForWidth(image, CARD_SIZE.width);
     this.resetLogo();
     this.canvas.add(image);
     if (previous) this.canvas.remove(previous);
@@ -164,7 +182,9 @@ export class CardEditor {
   setActiveScale(scale: number): void {
     const object = this.activeObject();
     if (!object) return;
-    const nextScale = object === this.logo ? clampLogoScale(scale) : Math.abs(scale);
+    const nextScale = object === this.logo
+      ? this.logoBaseScale * clampLogoScale(scale)
+      : Math.abs(scale);
     object.scale(nextScale);
     if (object === this.photo) this.constrainPhoto();
     this.finishTransform(object);
@@ -231,7 +251,8 @@ export class CardEditor {
 
   private constrainLogo(): void {
     if (!this.logo) return;
-    const scale = clampLogoScale(this.logo.scaleX);
+    const multiplier = clampLogoScale(this.logo.scaleX / this.logoBaseScale);
+    const scale = this.logoBaseScale * multiplier;
     this.logo.set({ scaleX: scale, scaleY: scale, flipX: false, flipY: false });
     this.logo.setCoords();
   }
@@ -252,7 +273,7 @@ export class CardEditor {
 
   private resetLogo(): void {
     if (!this.logo) return;
-    const scale = logoScaleForWidth(this.logo, CARD_SIZE.width);
+    const scale = this.logoBaseScale;
     const scaledWidth = this.logo.width * scale;
     const scaledHeight = this.logo.height * scale;
     this.logo.set({
@@ -280,7 +301,9 @@ export class CardEditor {
       hasPhoto: this.photo !== null,
       hasLogo: this.logo !== null,
       angle: normalizeAngle(active?.angle ?? 0),
-      scale: active ? Math.abs(active.scaleX) : 1,
+      scale: active
+        ? Math.abs(active.scaleX) / (active === this.logo ? this.logoBaseScale : 1)
+        : 1,
     });
   }
 }

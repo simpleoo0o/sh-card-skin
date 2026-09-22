@@ -87,6 +87,57 @@ test('uploads a portrait, transforms both layers, and exports an AirCard PNG', a
   expect(cornerAlphas).toEqual([255, 255, 255, 255]);
 });
 
+test('keeps a small custom Logo at its reset size during the first drag', async ({ page }) => {
+  await page.goto('./');
+  await page.locator('#logo-input').setInputFiles({
+    name: 'small.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#0071e3"/></svg>'),
+  });
+  await expect(page.locator('#scale-output')).toHaveText('100%');
+
+  const canvas = await page.locator('.upper-canvas').boundingBox();
+  expect(canvas).not.toBeNull();
+  if (!canvas) return;
+  const start = { x: canvas.x + canvas.width * 0.2, y: canvas.y + canvas.height * 0.68 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 24, start.y, { steps: 4 });
+  await page.mouse.up();
+
+  await expect(page.locator('#scale-output')).toHaveText('100%');
+});
+
+test('keeps the newest Logo when an older load finishes later', async ({ page }) => {
+  let fullLogoRequests = 0;
+  await page.route('**/logos/sptcc-full.png', async (route) => {
+    fullLogoRequests += 1;
+    const response = await route.fetch();
+    if (fullLogoRequests > 1) await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.fulfill({
+      response,
+      headers: { ...response.headers(), 'cache-control': 'no-store' },
+    });
+  });
+  await page.goto('./');
+
+  await page.getByRole('button', { name: '完整标识' }).click();
+  await page.getByRole('button', { name: '图形标识' }).click();
+  await expect(page.getByRole('button', { name: '图形标识' })).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(700);
+  await expect(page.getByRole('button', { name: '图形标识' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('moves keyboard focus into the preview after choosing a layer', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: '图形标识' }).click();
+  await page.locator('[data-layer="logo"]').click();
+
+  await expect(page.getByTestId('preview-shell')).toBeFocused();
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('keeps a valid photo after a rejected upload', async ({ page }) => {
   await page.goto('./');
   await uploadPhoto(page);
@@ -117,6 +168,14 @@ test('keeps a safe custom Logo after rejecting an external SVG reference', async
     buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><image href="https://example.com/a.png" /></svg>'),
   });
 
+  await expect(page.locator('#error')).toContainText('SVG 不能引用外部资源');
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.locator('#logo-input').setInputFiles({
+    name: 'external-style.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><style>@import "https://example.com/theme.css";</style></svg>'),
+  });
   await expect(page.locator('#error')).toContainText('SVG 不能引用外部资源');
   await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
 });

@@ -423,6 +423,11 @@ button:disabled {
   box-shadow: var(--card-shadow);
 }
 
+.preview-shell:focus-visible {
+  outline: 3px solid rgba(0, 113, 227, 0.55);
+  outline-offset: 5px;
+}
+
 .preview-shell .canvas-container {
   width: 100% !important;
   height: 100% !important;

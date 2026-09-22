@@ -32,10 +32,24 @@ export function validateImageFile(
 }
 
 function assertLocalUrls(value: string): void {
-  for (const match of value.matchAll(/url\(\s*(['"]?)([^)'"\s]+)\1\s*\)/gi)) {
-    if (!match[2]?.startsWith('#')) {
+  if (/@import\b/i.test(value)) {
+    throw new AssetError('SVG 不能引用外部资源');
+  }
+
+  const remainder = value.replace(/url\(\s*([^)]*?)\s*\)/gi, (_match, rawValue: string) => {
+    let resource = rawValue.trim();
+    const quote = resource[0];
+    if (quote === '"' || quote === "'") {
+      if (!resource.endsWith(quote)) throw new AssetError('SVG 不能引用外部资源');
+      resource = resource.slice(1, -1).trim();
+    }
+    if (!/^#[A-Za-z_][\w:.-]*$/.test(resource)) {
       throw new AssetError('SVG 不能引用外部资源');
     }
+    return '';
+  });
+  if (/url\s*\(/i.test(remainder)) {
+    throw new AssetError('SVG 不能引用外部资源');
   }
 }
 

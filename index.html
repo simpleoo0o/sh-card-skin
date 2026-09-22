@@ -106,7 +106,13 @@
             <span>拖动对象 · 滚动下方控件精调</span>
           </div>
           <div class="preview-frame">
-            <div class="preview-shell" data-testid="preview-shell">
+            <div
+              class="preview-shell"
+              data-testid="preview-shell"
+              role="group"
+              tabindex="0"
+              aria-label="卡面编辑区域。使用方向键移动当前图层，按住 Shift 移动 10 像素。"
+            >
               <canvas id="card-canvas" width="1536" height="969">你的浏览器不支持画布编辑。</canvas>
               <div class="empty-canvas-copy" aria-hidden="true">
                 <span>+</span>

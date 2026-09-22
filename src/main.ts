@@ -1,6 +1,11 @@
 import './styles.css';
 import { AssetError, createAssetHandle, type AssetHandle, type AssetRole } from './assets';
-import { CardEditor, type EditorSnapshot, type LayerName } from './card-editor';
+import {
+  CardEditor,
+  StaleAssetLoadError,
+  type EditorSnapshot,
+  type LayerName,
+} from './card-editor';
 import { makeExportFilename } from './export';
 
 function element<T extends Element>(selector: string): T {
@@ -20,6 +25,7 @@ const exportButton = element<HTMLButtonElement>('#export-button');
 const status = element<HTMLParagraphElement>('#status');
 const error = element<HTMLParagraphElement>('#error');
 const emptyCopy = element<HTMLDivElement>('.empty-canvas-copy');
+const previewShell = element<HTMLDivElement>('[data-testid="preview-shell"]');
 const layerButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-layer]')];
 const transformButtons = [
   element<HTMLButtonElement>('#rotate-left'),
@@ -83,6 +89,7 @@ async function loadFile(file: File, role: AssetRole): Promise<void> {
     showSuccess(role === 'photo' ? '照片已就位，可以调整取景了。' : '自定义 Logo 已添加。');
   } catch (caught) {
     nextHandle?.revoke();
+    if (caught instanceof StaleAssetLoadError) return;
     if (caught instanceof AssetError) showError(caught.message);
     else showError(role === 'photo' ? '照片无法读取，请换一张图片。' : 'Logo 无法读取，请换一个文件。');
   }
@@ -104,7 +111,8 @@ async function loadPreset(name: string): Promise<void> {
     updatePresetButtons();
     clearError();
     showSuccess(name === 'full' ? '已添加上海公共交通卡完整标识。' : '已添加上海公共交通卡图形标识。');
-  } catch {
+  } catch (caught) {
+    if (caught instanceof StaleAssetLoadError) return;
     showError('内置 Logo 加载失败，请刷新页面后重试。');
   }
 }
@@ -143,7 +151,10 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-logo]')
 }
 
 for (const button of layerButtons) {
-  button.addEventListener('click', () => editor.selectLayer(button.dataset.layer as LayerName));
+  button.addEventListener('click', () => {
+    editor.selectLayer(button.dataset.layer as LayerName);
+    previewShell.focus();
+  });
 }
 
 scaleControl.addEventListener('input', () => editor.setActiveScale(Number(scaleControl.value)));

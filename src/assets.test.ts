@@ -52,6 +52,8 @@ describe('sanitizeSvg', () => {
   it.each([
     '<svg xmlns="http://www.w3.org/2000/svg"><style>.x{fill:url(https://example.com/a.svg)}</style></svg>',
     '<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://example.com/a.svg)" /></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg"><style>@import "https://example.com/theme.css";</style></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg"><style>.x{fill:url("https://example.com/logo file.svg#paint")}</style></svg>',
   ])('rejects external CSS URLs', (svg) => {
     expect(() => sanitizeSvg(svg)).toThrow('SVG 不能引用外部资源');
   });
