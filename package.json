@@ -21,6 +21,7 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/pngjs": "^6.0.5",
+    "jpeg-js": "^0.4.4",
     "jsdom": "^29.1.1",
     "pngjs": "^7.0.0",
     "typescript": "^7.0.2",
