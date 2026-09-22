@@ -26,7 +26,15 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install dependencies
-        run: npm ci --registry=https://registry.npmjs.org --replace-registry-host=always
+        shell: bash
+        run: |
+          install_log="$(mktemp)"
+          if npm ci --registry=https://registry.npmjs.org --replace-registry-host=always >"$install_log" 2>&1; then
+            cat "$install_log"
+          else
+            tail -n 20 "$install_log" | sed 's/^/::error::/'
+            exit 1
+          fi
       - name: Test and build
         run: npm run check
       - name: Configure Pages
