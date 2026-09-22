@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta name="description" content="在浏览器本地裁切照片、叠加 Logo，并导出 AirCard 卡面。" />
+    <title>Card Skin Studio</title>
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <main class="page-shell">
+      <header class="hero entrance entrance-hero">
+        <p class="eyebrow">Card Skin Studio</p>
+        <h1>把喜欢的照片，变成你的卡面</h1>
+        <div class="hero-meta">
+          <p>照片和 Logo 只在你的浏览器中处理，不上传、不保存。</p>
+          <span class="output-badge">1536 × 969 PNG</span>
+        </div>
+      </header>
+
+      <section class="studio" aria-label="卡面编辑器">
+        <aside class="control-panel glass-panel entrance entrance-controls" aria-label="编辑控制">
+          <section class="control-section">
+            <div class="section-heading">
+              <div>
+                <p class="step-label">01 · 照片</p>
+                <h2>选择主画面</h2>
+              </div>
+              <span class="local-pill">本地处理</span>
+            </div>
+            <div class="drop-zone" data-drop-role="photo">
+              <input id="photo-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" />
+              <button id="choose-photo" class="primary-button" type="button">选择照片</button>
+              <p>或将 JPG、PNG、WebP 拖到这里</p>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-heading">
+              <div>
+                <p class="step-label">02 · 标识</p>
+                <h2>添加辨识 Logo</h2>
+              </div>
+            </div>
+            <div class="preset-grid" aria-label="上海公共交通卡 Logo 预设">
+              <button class="preset-button" type="button" data-logo="full" aria-pressed="false">
+                <span class="logo-swatch"><img src="/sh-card-skin/logos/sptcc-full.png" alt="" /></span>
+                <span>完整标识</span>
+              </button>
+              <button class="preset-button" type="button" data-logo="mark" aria-pressed="false">
+                <span class="logo-swatch"><img src="/sh-card-skin/logos/sptcc-mark.png" alt="" /></span>
+                <span>图形标识</span>
+              </button>
+            </div>
+            <input id="logo-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" />
+            <button id="choose-logo" class="secondary-button" type="button">上传自定义 Logo</button>
+          </section>
+
+          <section class="control-section transform-section">
+            <div class="section-heading compact-heading">
+              <div>
+                <p class="step-label">03 · 调整</p>
+                <h2>取景与位置</h2>
+              </div>
+            </div>
+
+            <div class="layer-tabs" role="group" aria-label="当前编辑图层">
+              <button type="button" data-layer="photo" aria-pressed="false">照片</button>
+              <button type="button" data-layer="logo" aria-pressed="false">Logo</button>
+            </div>
+
+            <label class="range-control" for="scale-control">
+              <span>缩放</span>
+              <output id="scale-output" for="scale-control">100%</output>
+            </label>
+            <input id="scale-control" type="range" min="0.05" max="8" step="0.01" value="1" disabled />
+
+            <label class="range-control" for="angle-control">
+              <span>旋转</span>
+              <output id="angle-output" for="angle-control">0°</output>
+            </label>
+            <input id="angle-control" type="range" min="0" max="359" step="1" value="0" disabled />
+
+            <div class="action-grid">
+              <button id="rotate-left" class="icon-button" type="button" disabled aria-label="向左旋转 90 度">↶ <span>左转</span></button>
+              <button id="rotate-right" class="icon-button" type="button" disabled aria-label="向右旋转 90 度">↷ <span>右转</span></button>
+              <button id="reset-layer" class="icon-button" type="button" disabled>重置</button>
+            </div>
+          </section>
+
+          <div class="message-stack">
+            <p id="status" class="status-message" aria-live="polite"></p>
+            <p id="error" class="error-message" aria-live="assertive"></p>
+          </div>
+        </aside>
+
+        <section class="preview-column entrance entrance-preview" aria-label="卡面预览">
+          <div class="preview-toolbar">
+            <div>
+              <span class="preview-dot" aria-hidden="true"></span>
+              <span>实时预览</span>
+            </div>
+            <span>拖动对象 · 滚动下方控件精调</span>
+          </div>
+          <div class="preview-frame">
+            <div class="preview-shell" data-testid="preview-shell">
+              <canvas id="card-canvas" width="1536" height="969">你的浏览器不支持画布编辑。</canvas>
+              <div class="empty-canvas-copy" aria-hidden="true">
+                <span>+</span>
+                <p>先添加一张照片</p>
+              </div>
+            </div>
+          </div>
+          <div class="export-row">
+            <p>导出完整矩形，不包含圆角和编辑选框。</p>
+            <button id="export-button" class="export-button" type="button" disabled>导出 PNG</button>
+          </div>
+        </section>
+      </section>
+
+      <footer>为 AirCard 准备 · 与上海公共交通卡股份有限公司及 AirCard 均无关联</footer>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
