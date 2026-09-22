@@ -5,6 +5,7 @@ import {
   type PhotoTransform,
   type Size,
 } from './geometry';
+import { exportCanvasPng } from './export';
 
 export type LayerName = 'photo' | 'logo';
 
@@ -195,7 +196,8 @@ export class CardEditor {
   }
 
   exportPngDataUrl(): string {
-    return this.canvas.toDataURL({ format: 'png', multiplier: 1, enableRetinaScaling: false });
+    if (!this.photo) throw new Error('请先添加照片');
+    return exportCanvasPng(this.canvas);
   }
 
   dispose(): void {
