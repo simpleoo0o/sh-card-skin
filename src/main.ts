@@ -24,6 +24,7 @@ const status = element<HTMLParagraphElement>('#status');
 const error = element<HTMLParagraphElement>('#error');
 const emptyCopy = element<HTMLDivElement>('.empty-canvas-copy');
 const previewShell = element<HTMLDivElement>('[data-testid="preview-shell"]');
+const photoRotateHandle = element<HTMLButtonElement>('#photo-rotate-handle');
 const layerButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-layer]')];
 const transformButtons = [
   element<HTMLButtonElement>('#rotate-left'),
@@ -34,6 +35,7 @@ const transformButtons = [
 const handles: Record<AssetRole, AssetHandle | null> = { photo: null, logo: null };
 let successTimer = 0;
 let activePreset: string | null = null;
+let activeAngle = 0;
 
 function showSuccess(message: string): void {
   window.clearTimeout(successTimer);
@@ -59,8 +61,10 @@ function renderSnapshot(snapshot: EditorSnapshot): void {
 
   scaleOutput.value = `${Math.round(snapshot.scale * 100)}%`;
   angleOutput.value = `${Math.round(snapshot.angle)}°`;
+  activeAngle = snapshot.angle;
   exportButton.disabled = !snapshot.hasPhoto;
   emptyCopy.hidden = snapshot.hasPhoto;
+  photoRotateHandle.hidden = snapshot.activeLayer !== 'photo';
 }
 
 const editor = new CardEditor(canvasElement, renderSnapshot);
@@ -96,7 +100,7 @@ function updatePresetButtons(): void {
 }
 
 async function loadPreset(name: string): Promise<void> {
-  const file = name === 'full' ? 'sptcc-app.webp' : name === 'classic' ? 'sptcc-classic.svg' : 'sptcc-mark.svg';
+  const file = name === 'full' ? 'sptcc-app.webp' : name === 'classic' ? 'sptcc-classic.svg' : 'sptcc-official.png';
   const path = `${import.meta.env.BASE_URL}logos/${file}`;
   try {
     await editor.setLogo(path);
@@ -105,7 +109,7 @@ async function loadPreset(name: string): Promise<void> {
     activePreset = name;
     updatePresetButtons();
     clearError();
-    showSuccess(name === 'full' ? '已添加上海公共交通卡完整标识。' : name === 'classic' ? '已添加经典图形标识。' : '已添加上海公共交通卡图形标识。');
+    showSuccess(name === 'full' ? '已添加上海公共交通卡完整标识。' : name === 'classic' ? '已添加经典图形标识。' : '已添加官网标识。');
   } catch (caught) {
     if (caught instanceof StaleAssetLoadError) return;
     showError('内置 Logo 加载失败，请刷新页面后重试。');
@@ -157,6 +161,26 @@ previewShell.addEventListener('wheel', (event) => {
   const delta = event.deltaY * (event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1);
   editor.scaleActiveBy(Math.exp(-delta * 0.001));
 }, { passive: false });
+
+let rotationStart: { id: number; pointer: number; angle: number } | null = null;
+function pointerAngle(event: PointerEvent): number {
+  const bounds = previewShell.getBoundingClientRect();
+  return Math.atan2(event.clientY - bounds.top - bounds.height / 2, event.clientX - bounds.left - bounds.width / 2) * 180 / Math.PI;
+}
+photoRotateHandle.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  rotationStart = { id: event.pointerId, pointer: pointerAngle(event), angle: activeAngle };
+  photoRotateHandle.setPointerCapture(event.pointerId);
+});
+photoRotateHandle.addEventListener('pointermove', (event) => {
+  if (!rotationStart || event.pointerId !== rotationStart.id) return;
+  editor.setActiveAngle(rotationStart.angle + pointerAngle(event) - rotationStart.pointer);
+});
+for (const name of ['pointerup', 'pointercancel'] as const) {
+  photoRotateHandle.addEventListener(name, (event) => {
+    if (event.pointerId === rotationStart?.id) rotationStart = null;
+  });
+}
 element<HTMLButtonElement>('#rotate-left').addEventListener('click', () => editor.rotateActiveBy(-90));
 element<HTMLButtonElement>('#rotate-right').addEventListener('click', () => editor.rotateActiveBy(90));
 element<HTMLButtonElement>('#reset-layer').addEventListener('click', () => editor.resetActive());

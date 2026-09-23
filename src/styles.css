@@ -435,6 +435,36 @@ button:disabled {
   height: 100% !important;
 }
 
+.photo-rotate-handle {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  color: #1d1d1f;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  font-size: 26px;
+  touch-action: none;
+  user-select: none;
+}
+
+.photo-rotate-handle[hidden] {
+  display: none;
+}
+
+.photo-rotate-handle:active {
+  cursor: grabbing;
+}
+
 .empty-canvas-copy {
   position: absolute;
   inset: 0;

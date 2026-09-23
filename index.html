@@ -50,13 +50,13 @@
                 <span class="logo-swatch"><img src="logos/sptcc-app.webp" alt="" /></span>
                 <span>完整标识</span>
               </button>
-              <button class="preset-button" type="button" data-logo="mark" aria-pressed="false">
-                <span class="logo-swatch"><img src="logos/sptcc-mark.svg" alt="" /></span>
-                <span>图形标识</span>
-              </button>
               <button class="preset-button" type="button" data-logo="classic" aria-pressed="false">
                 <span class="logo-swatch"><img src="logos/sptcc-classic.svg" alt="" /></span>
                 <span>经典图形</span>
+              </button>
+              <button class="preset-button" type="button" data-logo="official" aria-pressed="false">
+                <span class="logo-swatch"><img src="logos/sptcc-official.png" alt="" /></span>
+                <span>官网标识</span>
               </button>
             </div>
             <input id="logo-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" />
@@ -113,6 +113,7 @@
               aria-label="卡面编辑区域。拖拽移动当前图层，滚轮缩放，拖动旋转手柄调整角度。方向键移动当前图层，按住 Shift 移动 10 像素。"
             >
               <canvas id="card-canvas" width="1536" height="969">你的浏览器不支持画布编辑。</canvas>
+              <button id="photo-rotate-handle" class="photo-rotate-handle" type="button" aria-label="自由旋转照片" title="拖动以自由旋转照片" hidden>↻</button>
               <div class="empty-canvas-copy" aria-hidden="true">
                 <span>+</span>
                 <p>先添加一张照片</p>

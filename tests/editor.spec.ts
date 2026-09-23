@@ -31,9 +31,54 @@ test('initial editor presents the complete starting controls', async ({ page }) 
   await expect(page.getByRole('heading', { name: '把喜欢的照片，变成你的卡面' })).toBeVisible();
   await expect(page.getByRole('button', { name: '选择照片' })).toBeVisible();
   await expect(page.getByRole('button', { name: '完整标识' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '图形标识' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '图形标识' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '经典图形' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '官网标识' })).toBeVisible();
   await expect(page.getByRole('button', { name: '导出 PNG' })).toBeDisabled();
   await expect(page.getByRole('slider')).toHaveCount(0);
+});
+
+test('official Shanghai preset loads the supplied transparent PNG unchanged', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: '官网标识' }).click();
+
+  await expect(page.locator('[data-logo="official"] img')).toHaveAttribute('src', /sptcc-official\.png$/);
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+  const response = await page.request.get('./logos/sptcc-official.png');
+  expect(response.ok()).toBeTruthy();
+  expect(createHash('sha256').update(await response.body()).digest('hex'))
+    .toBe('fa99229c252ad2eb742d73a541506e92ec7f69323ef01c27891dd7680d611f4d');
+});
+
+test('rotates a covering portrait freely with an in-card handle and still exports', async ({ page }) => {
+  await page.goto('./');
+  await uploadPhoto(page);
+
+  const handle = page.getByRole('button', { name: '自由旋转照片' });
+  await expect(handle).toBeVisible();
+  const bounds = await handle.boundingBox();
+  const preview = await page.getByTestId('preview-shell').boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(preview).not.toBeNull();
+  if (!bounds || !preview) return;
+
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(preview.x + preview.width * 0.72, preview.y + preview.height * 0.23, { steps: 8 });
+  await page.mouse.up();
+
+  const angle = Number.parseInt(await page.locator('#angle-output').innerText(), 10);
+  expect(Math.abs(angle)).toBeGreaterThan(5);
+  expect(Math.abs(angle) % 90).toBeGreaterThan(5);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: '导出 PNG' }).click();
+  const download = await downloadPromise;
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const exported = PNG.sync.read(Buffer.concat(chunks));
+  expect([exported.width, exported.height]).toEqual([1536, 969]);
 });
 
 test('desktop editor stays within one viewport', async ({ page }) => {
@@ -123,18 +168,6 @@ test('keeps a small custom Logo at its reset size during the first drag', async 
   await expect(page.locator('#scale-output')).toHaveText('100%');
 });
 
-test('built-in Shanghai mark uses a vector source when enlarged', async ({ page }) => {
-  await page.goto('./');
-  await page.getByRole('button', { name: '图形标识' }).click();
-
-  await expect(page.locator('[data-logo="mark"] img')).toHaveAttribute('src', /sptcc-mark\.svg$/);
-  await expect.poll(() => page.locator('[data-logo="mark"] img').evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
-  const response = await page.request.get('./logos/sptcc-mark.svg');
-  expect(response.ok()).toBeTruthy();
-  expect(await response.text()).toContain('<path');
-});
-
 test('classic mark preset loads the selected Wikipedia SVG', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: '经典图形' }).click();
@@ -183,15 +216,15 @@ test('keeps the newest Logo when an older load finishes later', async ({ page })
   await page.goto('./');
 
   await page.getByRole('button', { name: '完整标识' }).click();
-  await page.getByRole('button', { name: '图形标识' }).click();
-  await expect(page.getByRole('button', { name: '图形标识' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: '官网标识' }).click();
+  await expect(page.getByRole('button', { name: '官网标识' })).toHaveAttribute('aria-pressed', 'true');
   await page.waitForTimeout(700);
-  await expect(page.getByRole('button', { name: '图形标识' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '官网标识' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('moves keyboard focus into the preview after choosing a layer', async ({ page }) => {
   await page.goto('./');
-  await page.getByRole('button', { name: '图形标识' }).click();
+  await page.getByRole('button', { name: '经典图形' }).click();
   await page.locator('[data-layer="logo"]').click();
 
   await expect(page.getByTestId('preview-shell')).toBeFocused();
