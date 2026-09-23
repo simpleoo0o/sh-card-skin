@@ -96,7 +96,8 @@ function updatePresetButtons(): void {
 }
 
 async function loadPreset(name: string): Promise<void> {
-  const path = `${import.meta.env.BASE_URL}logos/sptcc-${name}.svg`;
+  const file = name === 'full' ? 'sptcc-app.webp' : name === 'classic' ? 'sptcc-classic.svg' : 'sptcc-mark.svg';
+  const path = `${import.meta.env.BASE_URL}logos/${file}`;
   try {
     await editor.setLogo(path);
     handles.logo?.revoke();
@@ -104,7 +105,7 @@ async function loadPreset(name: string): Promise<void> {
     activePreset = name;
     updatePresetButtons();
     clearError();
-    showSuccess(name === 'full' ? '已添加上海公共交通卡完整标识。' : '已添加上海公共交通卡图形标识。');
+    showSuccess(name === 'full' ? '已添加上海公共交通卡完整标识。' : name === 'classic' ? '已添加经典图形标识。' : '已添加上海公共交通卡图形标识。');
   } catch (caught) {
     if (caught instanceof StaleAssetLoadError) return;
     showError('内置 Logo 加载失败，请刷新页面后重试。');

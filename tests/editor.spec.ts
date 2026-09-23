@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import { PNG } from 'pngjs';
 
 function portraitPng(): Buffer {
@@ -134,9 +135,43 @@ test('built-in Shanghai mark uses a vector source when enlarged', async ({ page 
   expect(await response.text()).toContain('<path');
 });
 
+test('classic mark preset loads the selected Wikipedia SVG', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: '经典图形' }).click();
+
+  await expect(page.locator('[data-logo="classic"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+  const response = await page.request.get('./logos/sptcc-classic.svg');
+  expect(response.ok()).toBeTruthy();
+  expect(createHash('sha256').update(await response.body()).digest('hex'))
+    .toBe('e3025d2e63d86c57ec7851cb02c41ed512e51c2b87d2e48e0ce1e14a6512281c');
+});
+
+test('three Logo presets still fit in one desktop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('./');
+  await uploadPhoto(page);
+  await page.getByRole('button', { name: '经典图形' }).click();
+
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(720);
+  await expect(page.getByRole('button', { name: '导出 PNG' })).toBeInViewport();
+});
+
+test('complete Shanghai preset uses the transparent Logo extracted from the app', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: '完整标识' }).click();
+
+  await expect(page.locator('[data-logo="full"] img')).toHaveAttribute('src', /sptcc-app\.webp$/);
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+  const response = await page.request.get('./logos/sptcc-app.webp');
+  expect(response.ok()).toBeTruthy();
+  expect(createHash('sha256').update(await response.body()).digest('hex'))
+    .toBe('656858fbc3892782186d3c06fb9887500190c327518d2650682f97a4d6d70ffc');
+});
+
 test('keeps the newest Logo when an older load finishes later', async ({ page }) => {
   let fullLogoRequests = 0;
-  await page.route('**/logos/sptcc-full.svg', async (route) => {
+  await page.route('**/logos/sptcc-app.webp', async (route) => {
     fullLogoRequests += 1;
     const response = await route.fetch();
     if (fullLogoRequests > 1) await new Promise((resolve) => setTimeout(resolve, 500));
