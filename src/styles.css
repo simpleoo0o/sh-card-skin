@@ -166,7 +166,6 @@ input:focus-visible {
 }
 
 .section-heading,
-.range-control,
 .preview-toolbar,
 .export-row {
   display: flex;
@@ -312,22 +311,20 @@ input:focus-visible {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.range-control {
-  margin: 15px 1px 6px;
+.transform-readout {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 3px;
   font-size: 13px;
   font-weight: 600;
 }
 
-.range-control output {
+.transform-readout output {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
-}
-
-input[type="range"] {
-  width: 100%;
-  height: 24px;
-  margin: 0;
-  accent-color: var(--blue);
+  text-align: right;
 }
 
 .action-grid {
@@ -569,6 +566,114 @@ footer {
   .empty-canvas-copy span {
     border-color: rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+@media (min-width: 901px) {
+  .page-shell {
+    padding-top: 16px;
+    padding-bottom: 6px;
+  }
+
+  .hero {
+    margin-bottom: 10px;
+  }
+
+  .hero h1 {
+    margin: 5px 0 8px;
+    font-size: clamp(36px, 3.8vw, 56px);
+  }
+
+  .hero-meta {
+    font-size: 13px;
+  }
+
+  .studio {
+    grid-template-columns: minmax(290px, 340px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: center;
+  }
+
+  .control-panel {
+    padding: 4px 18px 8px;
+  }
+
+  .control-section {
+    padding: 6px 0;
+  }
+
+  .section-heading {
+    margin-bottom: 8px;
+  }
+
+  .section-heading h2 {
+    font-size: 18px;
+  }
+
+  .drop-zone {
+    padding: 10px;
+  }
+
+  .drop-zone p {
+    margin-top: 5px;
+  }
+
+  .logo-swatch {
+    height: 35px;
+    margin-bottom: 3px;
+  }
+
+  .logo-swatch img {
+    max-height: 26px;
+  }
+
+  .preset-button {
+    padding: 5px;
+  }
+
+  .secondary-button {
+    min-height: 38px;
+    margin-top: 7px;
+  }
+
+  .layer-tabs {
+    margin-bottom: 11px;
+  }
+
+  .layer-tabs button,
+  .icon-button {
+    min-height: 38px;
+  }
+
+  .action-grid {
+    margin-top: 10px;
+  }
+
+  .message-stack {
+    min-height: 18px;
+  }
+
+  .preview-column {
+    justify-self: center;
+    width: min(100%, calc(158svh - 430px));
+    padding-top: 0;
+  }
+
+  .preview-toolbar {
+    min-height: 32px;
+    padding-bottom: 8px;
+  }
+
+  .preview-frame {
+    padding: 10px;
+  }
+
+  .export-row {
+    padding-top: 10px;
+  }
+
+  footer {
+    padding-top: 4px;
   }
 }
 

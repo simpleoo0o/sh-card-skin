@@ -190,6 +190,13 @@ export class CardEditor {
     this.finishTransform(object);
   }
 
+  scaleActiveBy(factor: number): void {
+    const object = this.activeObject();
+    if (!object) return;
+    const baseScale = object === this.logo ? this.logoBaseScale : 1;
+    this.setActiveScale(Math.abs(object.scaleX) / baseScale * factor);
+  }
+
   rotateActiveBy(degrees: number): void {
     const object = this.activeObject();
     if (!object) return;

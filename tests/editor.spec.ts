@@ -24,14 +24,6 @@ async function uploadPhoto(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: '导出 PNG' })).toBeEnabled();
 }
 
-async function setRange(page: Page, selector: string, value: string): Promise<void> {
-  await page.locator(selector).evaluate((input, nextValue) => {
-    const range = input as HTMLInputElement;
-    range.value = nextValue;
-    range.dispatchEvent(new Event('input', { bubbles: true }));
-  }, value);
-}
-
 test('initial editor presents the complete starting controls', async ({ page }) => {
   await page.goto('./');
 
@@ -40,6 +32,19 @@ test('initial editor presents the complete starting controls', async ({ page }) 
   await expect(page.getByRole('button', { name: '完整标识' })).toBeVisible();
   await expect(page.getByRole('button', { name: '图形标识' })).toBeVisible();
   await expect(page.getByRole('button', { name: '导出 PNG' })).toBeDisabled();
+  await expect(page.getByRole('slider')).toHaveCount(0);
+});
+
+test('desktop editor stays within one viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('./');
+
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(720);
+  await uploadPhoto(page);
+  await page.getByRole('button', { name: '完整标识' }).click();
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(720);
+  await expect(page.getByRole('button', { name: '导出 PNG' })).toBeInViewport();
 });
 
 test('desktop heading does not leave an orphaned final line', async ({ page }) => {
@@ -62,11 +67,20 @@ test('desktop heading does not leave an orphaned final line', async ({ page }) =
 test('uploads a portrait, transforms both layers, and exports an AirCard PNG', async ({ page }) => {
   await page.goto('./');
   await uploadPhoto(page);
-  await setRange(page, '#angle-control', '45');
+  const photoScaleBefore = Number.parseInt(await page.locator('#scale-output').innerText(), 10);
+  const canvas = await page.locator('.upper-canvas').boundingBox();
+  expect(canvas).not.toBeNull();
+  if (!canvas) return;
+  await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
+  await page.mouse.wheel(0, -240);
+  await expect.poll(async () => Number.parseInt(await page.locator('#scale-output').innerText(), 10)).toBeGreaterThan(photoScaleBefore);
+  await page.getByRole('button', { name: '向右旋转 90 度' }).click();
 
   await page.getByRole('button', { name: '完整标识' }).click();
   await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
-  await setRange(page, '#scale-control', '1.4');
+  await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
+  await page.mouse.wheel(0, -240);
+  await expect.poll(async () => Number.parseInt(await page.locator('#scale-output').innerText(), 10)).toBeGreaterThan(100);
   await page.getByRole('button', { name: '向右旋转 90 度' }).click();
 
   const downloadPromise = page.waitForEvent('download');
@@ -108,9 +122,21 @@ test('keeps a small custom Logo at its reset size during the first drag', async 
   await expect(page.locator('#scale-output')).toHaveText('100%');
 });
 
+test('built-in Shanghai mark uses a vector source when enlarged', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: '图形标识' }).click();
+
+  await expect(page.locator('[data-logo="mark"] img')).toHaveAttribute('src', /sptcc-mark\.svg$/);
+  await expect.poll(() => page.locator('[data-logo="mark"] img').evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('[data-layer="logo"]')).toHaveAttribute('aria-pressed', 'true');
+  const response = await page.request.get('./logos/sptcc-mark.svg');
+  expect(response.ok()).toBeTruthy();
+  expect(await response.text()).toContain('<path');
+});
+
 test('keeps the newest Logo when an older load finishes later', async ({ page }) => {
   let fullLogoRequests = 0;
-  await page.route('**/logos/sptcc-full.png', async (route) => {
+  await page.route('**/logos/sptcc-full.svg', async (route) => {
     fullLogoRequests += 1;
     const response = await route.fetch();
     if (fullLogoRequests > 1) await new Promise((resolve) => setTimeout(resolve, 500));

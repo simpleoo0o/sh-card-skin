@@ -17,8 +17,6 @@ function element<T extends Element>(selector: string): T {
 const canvasElement = element<HTMLCanvasElement>('#card-canvas');
 const photoInput = element<HTMLInputElement>('#photo-input');
 const logoInput = element<HTMLInputElement>('#logo-input');
-const scaleControl = element<HTMLInputElement>('#scale-control');
-const angleControl = element<HTMLInputElement>('#angle-control');
 const scaleOutput = element<HTMLOutputElement>('#scale-output');
 const angleOutput = element<HTMLOutputElement>('#angle-output');
 const exportButton = element<HTMLButtonElement>('#export-button');
@@ -57,12 +55,8 @@ function renderSnapshot(snapshot: EditorSnapshot): void {
     button.setAttribute('aria-pressed', String(button.dataset.layer === snapshot.activeLayer));
   }
   const hasActiveLayer = snapshot.activeLayer !== null;
-  scaleControl.disabled = !hasActiveLayer;
-  angleControl.disabled = !hasActiveLayer;
   for (const button of transformButtons) button.disabled = !hasActiveLayer;
 
-  scaleControl.value = String(Math.min(Number(scaleControl.max), Math.max(Number(scaleControl.min), snapshot.scale)));
-  angleControl.value = String(Math.round(snapshot.angle));
   scaleOutput.value = `${Math.round(snapshot.scale * 100)}%`;
   angleOutput.value = `${Math.round(snapshot.angle)}°`;
   exportButton.disabled = !snapshot.hasPhoto;
@@ -102,7 +96,7 @@ function updatePresetButtons(): void {
 }
 
 async function loadPreset(name: string): Promise<void> {
-  const path = `${import.meta.env.BASE_URL}logos/sptcc-${name}.png`;
+  const path = `${import.meta.env.BASE_URL}logos/sptcc-${name}.svg`;
   try {
     await editor.setLogo(path);
     handles.logo?.revoke();
@@ -157,8 +151,11 @@ for (const button of layerButtons) {
   });
 }
 
-scaleControl.addEventListener('input', () => editor.setActiveScale(Number(scaleControl.value)));
-angleControl.addEventListener('input', () => editor.setActiveAngle(Number(angleControl.value)));
+previewShell.addEventListener('wheel', (event) => {
+  event.preventDefault();
+  const delta = event.deltaY * (event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : 1);
+  editor.scaleActiveBy(Math.exp(-delta * 0.001));
+}, { passive: false });
 element<HTMLButtonElement>('#rotate-left').addEventListener('click', () => editor.rotateActiveBy(-90));
 element<HTMLButtonElement>('#rotate-right').addEventListener('click', () => editor.rotateActiveBy(90));
 element<HTMLButtonElement>('#reset-layer').addEventListener('click', () => editor.resetActive());
